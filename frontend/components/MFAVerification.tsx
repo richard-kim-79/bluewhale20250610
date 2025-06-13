@@ -87,7 +87,7 @@ const MFAVerification: React.FC<MFAVerificationProps> = ({ username = '', onVeri
         )}
 
         {error && (
-          <div className="text-red-600 bg-red-50 p-3 rounded-md">
+          <div className="text-red-600 bg-red-50 p-3 rounded-md" data-testid="mfa-error">
             {error}
           </div>
         )}
