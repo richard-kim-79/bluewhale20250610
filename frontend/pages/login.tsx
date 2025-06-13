@@ -16,6 +16,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [mfaRequired, setMfaRequired] = useState<boolean>(false);
   const [mfaUsername, setMfaUsername] = useState<string>('');
+  const [mfaError, setMfaError] = useState<string>('');
   const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,22 +54,23 @@ const Login: React.FC = () => {
   };
   
   // Handle MFA verification
-  const handleMfaVerify = async (code: string) => {
-    setError('');
+  const handleMfaVerify = async (code: string, isBackupCode: boolean) => {
+    setMfaError('');
     setLoading(true);
     
     try {
-      // Attempt login with MFA code
-      await api.login({
+      // Attempt MFA verification
+      await api.verifyMFA({
         username: mfaUsername,
-        password: credentials.password,
-        mfa_code: code
+        code: code,
+        isBackupCode: isBackupCode
       });
       
       // If successful, redirect to dashboard
       router.push('/dashboard');
     } catch (err: any) {
-      throw err; // Let MFAVerification component handle the error
+      setMfaError(err.response?.data?.detail || 'Invalid verification code');
+      throw err; // Propagate the error for the component to handle
     } finally {
       setLoading(false);
     }
@@ -78,6 +80,7 @@ const Login: React.FC = () => {
   const handleMfaCancel = () => {
     setMfaRequired(false);
     setMfaUsername('');
+    setMfaError('');
   };
 
   // Show MFA verification if required, otherwise show login form
@@ -98,6 +101,7 @@ const Login: React.FC = () => {
             username={mfaUsername}
             onVerify={handleMfaVerify}
             onCancel={handleMfaCancel}
+            error={mfaError}
           />
         </div>
       </div>
