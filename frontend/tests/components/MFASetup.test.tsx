@@ -138,4 +138,98 @@ describe('MFASetup Component', () => {
     // Should show error message
     expect(screen.getByText(/Invalid verification code/i)).toBeInTheDocument();
   });
+
+  test('handles cancellation', async () => {
+    const mockOnCancel = jest.fn();
+    
+    await act(async () => {
+      render(<MFASetup onCancel={mockOnCancel} />);
+    });
+    
+    // Find and click the cancel button
+    const cancelButton = screen.getByRole('button', { name: /cancel/i });
+    await act(async () => {
+      fireEvent.click(cancelButton);
+    });
+    
+    expect(mockOnCancel).toHaveBeenCalled();
+  });
+
+  test('validates verification code length', async () => {
+    await act(async () => {
+      render(<MFASetup />);
+    });
+    
+    // Start setup
+    const startButton = screen.getByRole('button', { name: /set up two-factor/i });
+    await act(async () => {
+      fireEvent.click(startButton);
+    });
+    
+    // Enter an invalid (too short) verification code
+    const codeInput = screen.getByLabelText(/verification code/i);
+    fireEvent.change(codeInput, { target: { value: '12345' } });
+    
+    // Verify button should be disabled
+    const verifyButton = screen.getByRole('button', { name: /verify/i });
+    expect(verifyButton).toBeDisabled();
+    
+    // Try to submit anyway
+    await act(async () => {
+      fireEvent.click(verifyButton);
+    });
+    
+    // API should not be called
+    expect(api.enableMFA).not.toHaveBeenCalled();
+    
+    // Enter a valid code
+    fireEvent.change(codeInput, { target: { value: '123456' } });
+    
+    // Verify button should be enabled
+    expect(verifyButton).not.toBeDisabled();
+  });
+
+  test('handles back button navigation', async () => {
+    await act(async () => {
+      render(<MFASetup />);
+    });
+    
+    // Start setup
+    const startButton = screen.getByRole('button', { name: /set up two-factor/i });
+    await act(async () => {
+      fireEvent.click(startButton);
+    });
+    
+    // Should be on setup screen
+    expect(screen.getByText(/Scan this QR code/i)).toBeInTheDocument();
+    
+    // Click back button
+    const backButton = screen.getByRole('button', { name: /back/i });
+    await act(async () => {
+      fireEvent.click(backButton);
+    });
+    
+    // Should be back on intro screen
+    expect(screen.getByText(/Set Up Two-Factor Authentication/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /set up two-factor/i })).toBeInTheDocument();
+  });
+
+  test('filters non-numeric characters from verification code input', async () => {
+    await act(async () => {
+      render(<MFASetup />);
+    });
+    
+    // Start setup
+    const startButton = screen.getByRole('button', { name: /set up two-factor/i });
+    await act(async () => {
+      fireEvent.click(startButton);
+    });
+    
+    // Enter a code with non-numeric characters
+    const codeInput = screen.getByLabelText(/verification code/i);
+    fireEvent.change(codeInput, { target: { value: '1a2b3c4d5e6f' } });
+    
+    // Input should only contain numbers and be limited to 6 digits
+    expect(codeInput).toHaveValue('123456');
+  });
 });

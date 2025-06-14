@@ -1,6 +1,10 @@
 // Import Jest DOM matchers
 import '@testing-library/jest-dom';
 
+// Add fetch polyfill for tests
+import fetch from 'node-fetch';
+global.fetch = fetch;
+
 // Mock Next.js router
 jest.mock('next/router', () => ({
   useRouter: jest.fn().mockReturnValue({

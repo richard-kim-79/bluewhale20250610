@@ -5,6 +5,7 @@ import DocumentCard from '../components/DocumentCard';
 import ProtectedRoute from '../components/ProtectedRoute';
 import MFASettings from '../components/MFASettings';
 import { Document, UserRecommendation } from '../types';
+import { Document as ApiDocument } from '../lib/api';
 import api, { UpdateProfileData } from '../lib/api';
 import { FaUser, FaSpinner, FaEdit, FaCheck, FaExclamationTriangle, FaShieldAlt } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
@@ -40,22 +41,21 @@ const ProfilePage: React.FC = () => {
       setLoading(true);
       try {
         // Fetch user's documents
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/search?q=&limit=10`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch documents');
+        if (!user || !user.id) {
+          throw new Error('User ID not available');
         }
         
-        const data = await response.json();
-        const docs = data.results.map((result: any) => ({
-          ...result,
-          created_at: result.created_at || new Date().toISOString(),
+        const apiDocs = await api.getUserDocuments(user.id);
+        
+        // Convert API Document type to our Document type with required fields
+        const processedDocs = apiDocs.map((doc: ApiDocument): Document => ({
+          ...doc,
+          created_at: doc.created_at || new Date().toISOString(),
+          ai_citation_count: 0, // Default value
+          trust_score: 1.0, // Default value
         }));
-        setDocuments(docs);
+        
+        setDocuments(processedDocs);
         
         // In a real app, we would fetch recommendations
         // For now, we'll just simulate the data
