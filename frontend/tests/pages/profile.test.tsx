@@ -148,6 +148,6 @@ describe('Profile Page', () => {
     });
     
     // Profile should still render with mock data from AuthProvider
-    expect(screen.getByText(/Profile Information/i)).toBeInTheDocument();
+    expect(screen.getByText(/Security Settings/i)).toBeInTheDocument();
   });
 });
