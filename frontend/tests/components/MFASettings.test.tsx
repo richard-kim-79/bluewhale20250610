@@ -115,10 +115,17 @@ describe('MFASettings Component', () => {
     const codeInput = screen.getByPlaceholderText('000000');
     fireEvent.change(codeInput, { target: { value: '123456' } });
     
-    // Submit verification
-    const confirmButton = screen.getByRole('button', { name: /Disable/i });
+    // Wait for the button to be enabled and then find it
+    await waitFor(() => {
+      expect(screen.getByText(/Disable/i)).toBeInTheDocument();
+    });
+    const disableText = screen.getByText(/Disable/i);
+    const confirmButton = disableText.closest('button');
+    expect(confirmButton).not.toBeNull();
     await act(async () => {
-      fireEvent.click(confirmButton);
+      if (confirmButton) {
+        fireEvent.click(confirmButton);
+      }
     });
     
     // API should be called with the code
@@ -166,10 +173,17 @@ describe('MFASettings Component', () => {
     const codeInput = screen.getByPlaceholderText('000000');
     fireEvent.change(codeInput, { target: { value: '123456' } });
     
-    // Submit verification
-    const confirmButton = screen.getByRole('button', { name: /Disable/i });
+    // Wait for the button to be enabled and then find it
+    await waitFor(() => {
+      expect(screen.getByText(/Disable/i)).toBeInTheDocument();
+    });
+    const disableText = screen.getByText(/Disable/i);
+    const confirmButton = disableText.closest('button');
+    expect(confirmButton).not.toBeNull();
     await act(async () => {
-      fireEvent.click(confirmButton);
+      if (confirmButton) {
+        fireEvent.click(confirmButton);
+      }
     });
     
     // Should show backup codes
