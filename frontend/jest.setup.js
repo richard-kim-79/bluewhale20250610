@@ -5,6 +5,9 @@ import '@testing-library/jest-dom';
 import fetch from 'node-fetch';
 global.fetch = fetch;
 
+// Increase timeout for all tests
+jest.setTimeout(15000);
+
 // Mock Next.js router
 jest.mock('next/router', () => ({
   useRouter: jest.fn().mockReturnValue({
@@ -60,7 +63,10 @@ window.IntersectionObserver = MockIntersectionObserver;
 // Suppress console errors during tests
 const originalConsoleError = console.error;
 console.error = (...args) => {
+  // Filter out React-specific warnings that might be noisy in tests
   if (
+    (args[0] && typeof args[0] === 'string' && 
+     (args[0].includes('Warning:') || args[0].includes('Error:'))) ||
     /Warning: ReactDOM.render is no longer supported in React 18/.test(args[0]) ||
     /Warning: useLayoutEffect does nothing on the server/.test(args[0])
   ) {

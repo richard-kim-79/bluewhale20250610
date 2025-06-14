@@ -161,7 +161,7 @@ describe('MFASetup Component', () => {
     });
     
     // Start setup
-    const startButton = screen.getByRole('button', { name: /set up two-factor/i });
+    const startButton = screen.getByRole('button', { name: /begin setup/i });
     await act(async () => {
       fireEvent.click(startButton);
     });
@@ -195,7 +195,7 @@ describe('MFASetup Component', () => {
     });
     
     // Start setup
-    const startButton = screen.getByRole('button', { name: /set up two-factor/i });
+    const startButton = screen.getByRole('button', { name: /begin setup/i });
     await act(async () => {
       fireEvent.click(startButton);
     });
@@ -211,7 +211,7 @@ describe('MFASetup Component', () => {
     
     // Should be back on intro screen
     expect(screen.getByText(/Set Up Two-Factor Authentication/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /set up two-factor/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /begin setup/i })).toBeInTheDocument();
   });
 
   test('filters non-numeric characters from verification code input', async () => {
@@ -220,7 +220,7 @@ describe('MFASetup Component', () => {
     });
     
     // Start setup
-    const startButton = screen.getByRole('button', { name: /set up two-factor/i });
+    const startButton = screen.getByRole('button', { name: /begin setup/i });
     await act(async () => {
       fireEvent.click(startButton);
     });

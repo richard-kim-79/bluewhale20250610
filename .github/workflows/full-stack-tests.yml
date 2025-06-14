@@ -25,10 +25,10 @@ jobs:
           --health-retries 5
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v3
       with:
         python-version: '3.10'
         
@@ -52,7 +52,7 @@ jobs:
         python -m pytest tests/ -v --cov=app --cov-report=xml
         
     - name: Upload backend coverage
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v3
       with:
         file: ./backend/coverage.xml
         flags: backend
@@ -62,10 +62,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
     
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v3
       with:
         node-version: '18'
         cache: 'npm'
@@ -81,10 +81,10 @@ jobs:
       
     - name: Run frontend tests
       working-directory: ./frontend
-      run: npm test -- --coverage
+      run: npm run test:ci
       
     - name: Upload frontend coverage
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v3
       with:
         file: ./frontend/coverage/coverage-final.json
         flags: frontend

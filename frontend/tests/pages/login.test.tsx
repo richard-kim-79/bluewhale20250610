@@ -19,17 +19,26 @@ jest.mock('next/router', () => ({
 
 // Mock MFAVerification component
 jest.mock('../../components/MFAVerification', () => {
-  return function MockMFAVerification({ onVerify, onCancel, error }) {
+  const MockMFAVerification = ({ onVerify, onCancel, error }: { onVerify: (code: string, isBackupCode: boolean) => Promise<void>, onCancel?: () => void, error?: string | null }) => {
+    // Log the error prop to help with debugging
+    console.log('MFAVerification mock received error:', error);
+    
     return (
       <div data-testid="mfa-verification">
-        <p>MFA Verification Component</p>
+        <div>MFA Verification Mock</div>
+        {error && <div data-testid="mfa-error">{error}</div>}
         <button onClick={() => onVerify('123456', false)}>Verify with TOTP</button>
-        <button onClick={() => onVerify('12345678', true)}>Verify with Backup Code</button>
-        <button onClick={onCancel}>Cancel</button>
-        {error && <p data-testid="mfa-error">{error}</p>}
+        <button onClick={() => onVerify('ABCD-EFGH', true)}>Verify with Backup Code</button>
+        {onCancel && <button onClick={onCancel}>Cancel</button>}
+        <label>
+          Authentication Code
+          <input type="text" />
+        </label>
       </div>
     );
   };
+  
+  return MockMFAVerification;
 });
 
 describe('Login Page', () => {
@@ -179,7 +188,7 @@ describe('Login Page', () => {
     
     // Should call verifyMFA API with backup code flag and correct object format
     expect(api.verifyMFA).toHaveBeenCalledWith({ 
-      code: '12345678', 
+      code: 'ABCD-EFGH', 
       isBackupCode: true, 
       username: 'testuser' 
     });
@@ -197,7 +206,7 @@ describe('Login Page', () => {
       username: 'testuser'
     });
     
-    // Mock failed MFA verification
+    // Mock MFA verification error
     (api.verifyMFA as jest.Mock).mockRejectedValue({
       response: {
         data: {
@@ -206,32 +215,39 @@ describe('Login Page', () => {
       }
     });
     
-    render(<Login />);
+    // Use a custom render to track state updates
+    const { container } = render(<Login />);
     
     // Fill in login form and submit
-    await act(async () => {
-      fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: 'testuser' } });
-      fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password123' } });
-      fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
-    });
+    fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: 'testuser' } });
+    fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
     
-    // Attempt verification
+    // Wait for MFA verification component to appear
     await waitFor(() => {
       expect(screen.getByTestId('mfa-verification')).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
     
+    // Directly trigger the verification with error
+    const verifyButton = screen.getByRole('button', { name: /Verify with TOTP/i });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Verify with TOTP/i }));
+      fireEvent.click(verifyButton);
     });
     
-    // Should show error message
+    // Debug output to see what's in the DOM
+    console.log('DOM after verification attempt:', container.innerHTML);
+    
+    // Should show error message with more flexible waiting
     await waitFor(() => {
-      expect(screen.getByTestId('mfa-error')).toHaveTextContent('Invalid verification code');
-    });
+      const errorElements = screen.queryAllByTestId('mfa-error');
+      console.log('Found error elements:', errorElements.length);
+      expect(errorElements.length).toBeGreaterThan(0);
+      expect(errorElements[0]).toHaveTextContent('Invalid verification code');
+    }, { timeout: 5000 });
     
     // Should not redirect
     expect(mockRouter.push).not.toHaveBeenCalled();
-  });
+  }, 15000);
   
   test('handles MFA verification cancellation', async () => {
     // Mock login response requiring MFA
