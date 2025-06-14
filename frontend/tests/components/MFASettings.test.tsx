@@ -109,14 +109,14 @@ describe('MFASettings Component', () => {
     });
     
     // Should show verification dialog
-    expect(screen.getByText(/Enter your verification code/i)).toBeInTheDocument();
+    expect(screen.getByText(/Verify Your Identity/i)).toBeInTheDocument();
     
     // Enter code
-    const codeInput = screen.getByLabelText(/Verification code/i);
+    const codeInput = screen.getByPlaceholderText('000000');
     fireEvent.change(codeInput, { target: { value: '123456' } });
     
     // Submit verification
-    const confirmButton = screen.getByRole('button', { name: /Confirm/i });
+    const confirmButton = screen.getByRole('button', { name: /Disable/i });
     await act(async () => {
       fireEvent.click(confirmButton);
     });
@@ -160,14 +160,14 @@ describe('MFASettings Component', () => {
     });
     
     // Should show verification dialog
-    expect(screen.getByText(/Enter your verification code/i)).toBeInTheDocument();
+    expect(screen.getByText(/Verify Your Identity/i)).toBeInTheDocument();
     
     // Enter code
-    const codeInput = screen.getByLabelText(/Verification code/i);
+    const codeInput = screen.getByPlaceholderText('000000');
     fireEvent.change(codeInput, { target: { value: '123456' } });
     
     // Submit verification
-    const confirmButton = screen.getByRole('button', { name: /Confirm/i });
+    const confirmButton = screen.getByRole('button', { name: /Disable/i });
     await act(async () => {
       fireEvent.click(confirmButton);
     });
