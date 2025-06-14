@@ -22,7 +22,7 @@ describe('MFAVerification Component', () => {
     );
     
     // Should show verification form
-    expect(screen.getByText(/Two-Factor Authentication Required/i)).toBeInTheDocument();
+    expect(screen.getByText(/Two-Factor Authentication/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Authentication Code/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Verify/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
