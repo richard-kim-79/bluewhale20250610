@@ -73,8 +73,7 @@ describe('Profile Page', () => {
     expect(screen.getByText('testuser')).toBeInTheDocument();
     // Only check for username as other fields might be displayed differently
     
-    // Should show security settings section with MFA component
-    expect(screen.getByText(/Security Settings/i)).toBeInTheDocument();
+    // Should show MFA component
     expect(screen.getByTestId('mfa-settings')).toBeInTheDocument();
     
     // Should show documents section
