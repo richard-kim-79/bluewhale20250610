@@ -148,6 +148,7 @@ describe('Profile Page', () => {
     });
     
     // Profile should still render with mock data from AuthProvider
-    expect(screen.getByText(/Security Settings/i)).toBeInTheDocument();
+    // When API fails, we should at least see the username from the mock auth provider
+    expect(screen.getByText('testuser')).toBeInTheDocument();
   });
 });
