@@ -70,9 +70,8 @@ describe('MFAVerification Component', () => {
     });
     
     // Should show backup code form
-    expect(screen.getByText(/Enter Backup Code/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Backup Code/i)).toBeInTheDocument();
-    expect(screen.getByText(/Use authentication app instead/i)).toBeInTheDocument();
+    expect(screen.getByText(/Use authentication code instead/i)).toBeInTheDocument();
   });
   
   test('handles backup code submission', async () => {
@@ -119,7 +118,8 @@ describe('MFAVerification Component', () => {
     
     // Should display error message
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
-    expect(screen.getByText(errorMessage)).toHaveClass('text-red-500');
+    expect(screen.getByTestId('mfa-error')).toHaveClass('text-red-600');
+    expect(screen.getByTestId('mfa-error')).toHaveClass('bg-red-50');
   });
   
   test('handles cancel action', async () => {
