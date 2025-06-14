@@ -77,7 +77,7 @@ describe('Profile Page', () => {
     expect(screen.getByTestId('mfa-settings')).toBeInTheDocument();
     
     // Should show documents section
-    expect(screen.getByText(/My Documents/i)).toBeInTheDocument();
+    expect(screen.getByText(/Your Documents/i)).toBeInTheDocument();
     expect(screen.getByText('Document 1')).toBeInTheDocument();
     expect(screen.getByText('Document 2')).toBeInTheDocument();
   });
