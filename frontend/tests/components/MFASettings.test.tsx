@@ -154,7 +154,7 @@ describe('MFASettings Component', () => {
     });
     
     // Click backup codes button
-    const backupCodesButton = screen.getByRole('button', { name: /View Backup Codes/i });
+    const backupCodesButton = screen.getByRole('button', { name: /Generate New Backup Codes/i });
     await act(async () => {
       fireEvent.click(backupCodesButton);
     });
