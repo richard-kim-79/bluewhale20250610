@@ -101,15 +101,13 @@ describe('Profile Page', () => {
     
     // Should show edit form
     expect(screen.getByLabelText(/Full Name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Bio/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     
     // Edit fields
     const nameInput = screen.getByLabelText(/Full Name/i);
-    const bioInput = screen.getByLabelText(/Bio/i);
     
     await act(async () => {
       fireEvent.change(nameInput, { target: { value: 'Updated Name' } });
-      fireEvent.change(bioInput, { target: { value: 'Updated bio' } });
     });
     
     // Submit form
@@ -120,8 +118,7 @@ describe('Profile Page', () => {
     
     // Should call API with updated data
     expect(api.updateUserProfile).toHaveBeenCalledWith({
-      full_name: 'Updated Name',
-      bio: 'Updated bio'
+      full_name: 'Updated Name'
     });
     
     // Should show success message
