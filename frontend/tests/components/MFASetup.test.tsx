@@ -29,145 +29,258 @@ describe('MFASetup Component', () => {
   const mockOtpauthUrl = 'otpauth://totp/BlueWhale:testuser?secret=ABCDEFGHIJKLMNOP&issuer=BlueWhale';
   const mockBackupCodes = ['12345678', '23456789', '34567890'];
   
+  const mockSetupMFA = api.setupMFA as jest.Mock;
+  const mockEnableMFA = api.enableMFA as jest.Mock;
+  const mockGetBackupCodes = api.getBackupCodes as jest.Mock;
+  
   beforeEach(() => {
     jest.clearAllMocks();
     
     // Mock API responses
-    (api.setupMFA as jest.Mock).mockResolvedValue({
-      secret: mockSecret,
-      qr_code: mockQrCode,
-      otpauth_url: mockOtpauthUrl
+    mockSetupMFA.mockResolvedValue({
+      data: {
+        secret: mockSecret,
+        qr_code: mockQrCode,
+        uri: 'otpauth://totp/BlueWhale:user@example.com?secret=ABCDEFGHIJKLMNOP&issuer=BlueWhale'
+      }
     });
     
-    (api.enableMFA as jest.Mock).mockResolvedValue({
+    mockEnableMFA.mockResolvedValue({
       message: 'MFA enabled successfully'
     });
     
-    (api.getBackupCodes as jest.Mock).mockResolvedValue({
+    mockGetBackupCodes.mockResolvedValue({
       backup_codes: mockBackupCodes
     });
   });
   
-  test('renders initial setup screen and handles full setup flow', async () => {
-    const mockOnComplete = jest.fn();
+  it('renders MFA setup with QR code and verification input', async () => {
+    render(<MFASetup />);
     
-    await act(async () => {
-      render(<MFASetup onComplete={mockOnComplete} />);
+    // Initial screen should have Begin Setup button
+    const beginSetupButton = screen.getByRole('button', { name: /Begin Setup/i });
+    expect(beginSetupButton).toBeInTheDocument();
+    
+    // Click Begin Setup
+    fireEvent.click(beginSetupButton);
+    
+    // Wait for API call to complete and component to update
+    await waitFor(() => {
+      expect(mockSetupMFA).toHaveBeenCalled();
     });
     
-    // Initial screen should show QR code and secret
-    expect(screen.getByText(/Scan this QR code/i)).toBeInTheDocument();
-    expect(screen.getByAltText('QR Code')).toHaveAttribute('src', mockQrCode);
+    // After setup, screen should show QR code heading
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: /Scan the QR Code/i })).toBeInTheDocument();
+    });
+    
+    // Should show QR code image and secret
+    expect(screen.getByAltText(/MFA QR Code/i)).toHaveAttribute('src', expect.stringContaining('data:image/png;base64,'));
     expect(screen.getByText(mockSecret)).toBeInTheDocument();
     
+    // Should show verification code input
+    expect(screen.getByLabelText('Enter the 6-digit verification code from your app')).toBeInTheDocument();
+    
+    // Should have Verify and Enable button
+    expect(screen.getByRole('button', { name: /Verify and Enable/i })).toBeInTheDocument();
+  });
+  
+  it('handles API errors during setup', async () => {
+    // Mock API error
+    mockSetupMFA.mockRejectedValueOnce(new Error('Failed to setup MFA'));
+    
+    render(<MFASetup />);
+    
+    // Click Begin Setup button
+    const beginSetupButton = screen.getByRole('button', { name: /Begin Setup/i });
+    fireEvent.click(beginSetupButton);
+    
+    // Should show error message
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to start MFA setup/i)).toBeInTheDocument();
+    });
+    
+    // Should still be on intro screen
+    expect(screen.getByRole('heading', { name: /Set Up Two-Factor Authentication/i })).toBeInTheDocument();
+  });
+  
+  it('handles verification error', async () => {
+    render(<MFASetup onComplete={jest.fn()} />);
+    
+    // Mock verification error
+    mockEnableMFA.mockRejectedValueOnce(new Error('Invalid verification code'));
+    
+    // First need to click begin setup
+    const startButton = screen.getByRole('button', { name: /begin setup/i });
+    fireEvent.click(startButton);
+    
+    // Wait for setup to complete
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: /Scan the QR Code/i })).toBeInTheDocument();
+    });
+    
     // Enter verification code
-    const codeInput = screen.getByLabelText(/verification code/i);
+    const codeInput = screen.getByLabelText('Enter the 6-digit verification code from your app');
     fireEvent.change(codeInput, { target: { value: '123456' } });
     
     // Submit verification
     const verifyButton = screen.getByRole('button', { name: /verify/i });
-    await act(async () => {
-      fireEvent.click(verifyButton);
+    fireEvent.click(verifyButton);
+    
+    // Should show error message
+    await waitFor(() => {
+      expect(screen.getByText(/Invalid verification code/i)).toBeInTheDocument();
+    });
+  });
+
+  it('handles back button navigation', async () => {
+    render(<MFASetup />);
+    
+    // Initial screen should have Begin Setup button
+    const beginSetupButton = screen.getByRole('button', { name: /Begin Setup/i });
+    expect(beginSetupButton).toBeInTheDocument();
+    
+    // Click Begin Setup
+    fireEvent.click(beginSetupButton);
+    
+    // Wait for API call to complete and component to update
+    await waitFor(() => {
+      expect(mockSetupMFA).toHaveBeenCalled();
     });
     
+    // Should be on setup screen
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: /Scan the QR Code/i })).toBeInTheDocument();
+    });
+    
+    // Click back button
+    const backButton = screen.getByRole('button', { name: /back/i });
+    fireEvent.click(backButton);
+    
+    // Should return to intro screen
+    expect(screen.getByRole('heading', { name: /Set Up Two-Factor Authentication/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Begin Setup/i })).toBeInTheDocument();
+  });
+
+  it('filters non-numeric characters from verification code input', async () => {
+    render(<MFASetup />);
+    
+    // Start setup
+    const startButton = screen.getByRole('button', { name: /begin setup/i });
+    fireEvent.click(startButton);
+    
+    // Wait for setup to complete
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: /Scan the QR Code/i })).toBeInTheDocument();
+    });
+    
+    // Enter a code with non-numeric characters
+    const codeInput = screen.getByLabelText('Enter the 6-digit verification code from your app');
+    fireEvent.change(codeInput, { target: { value: '1a2b3c4d5e6f' } });
+    
+    // Input should only contain numbers and be limited to 6 digits
+    expect(codeInput).toHaveValue('123456');
+  });
+
+  it('renders initial setup screen and handles full setup flow', async () => {
+    const mockOnComplete = jest.fn();
+    
+    render(<MFASetup onComplete={mockOnComplete} />);
+    
+    // Initial screen should show Begin Setup button
+    const beginSetupButton = screen.getByRole('button', { name: /Begin Setup/i });
+    expect(beginSetupButton).toBeInTheDocument();
+    
+    // Click Begin Setup
+    fireEvent.click(beginSetupButton);
+    
+    // Wait for API call to complete and component to update
+    await waitFor(() => {
+      expect(mockSetupMFA).toHaveBeenCalled();
+    });
+    
+    // After setup, screen should show QR code heading
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: /Scan the QR Code/i })).toBeInTheDocument();
+    });
+    
+    // Should show QR code image and secret
+    expect(screen.getByAltText(/MFA QR Code/i)).toHaveAttribute('src', expect.stringContaining('data:image/png;base64,'));
+    expect(screen.getByText(mockSecret)).toBeInTheDocument();
+    
+    // Enter verification code
+    const codeInput = screen.getByLabelText('Enter the 6-digit verification code from your app');
+    fireEvent.change(codeInput, { target: { value: '123456' } });
+    
+    // Submit verification
+    const verifyButton = screen.getByRole('button', { name: /verify/i });
+    fireEvent.click(verifyButton);
+    
     // API should be called with the code
-    expect(api.enableMFA).toHaveBeenCalledWith('123456');
+    expect(mockEnableMFA).toHaveBeenCalledWith('123456');
     
     // Should now show backup codes
     await waitFor(() => {
-      expect(screen.getByText(/Backup Codes/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Your Backup Codes/i })).toBeInTheDocument();
     });
     
     // Should display all backup codes
-    mockBackupCodes.forEach(code => {
-      expect(screen.getByText(code)).toBeInTheDocument();
+    // The backup codes are rendered in div elements with specific styling
+    await waitFor(() => {
+      const codeElements = screen.getAllByText(/^[A-Z0-9]{8}$/i);
+      expect(codeElements.length).toBe(mockBackupCodes.length);
+      
+      // Check if all mock backup codes are present
+      mockBackupCodes.forEach(code => {
+        const found = Array.from(codeElements).some(element => 
+          element.textContent === code
+        );
+        expect(found).toBe(true);
+      });
     });
     
     // Test copy to clipboard
     const copyButton = screen.getByRole('button', { name: /copy/i });
-    await act(async () => {
-      fireEvent.click(copyButton);
-    });
+    fireEvent.click(copyButton);
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(mockBackupCodes.join('\n'));
     
     // Test download
     const downloadButton = screen.getByRole('button', { name: /download/i });
-    await act(async () => {
-      fireEvent.click(downloadButton);
-    });
+    fireEvent.click(downloadButton);
     expect(URL.createObjectURL).toHaveBeenCalled();
     
     // Test completion
     const doneButton = screen.getByRole('button', { name: /done/i });
-    await act(async () => {
-      fireEvent.click(doneButton);
-    });
+    fireEvent.click(doneButton);
     expect(mockOnComplete).toHaveBeenCalled();
   });
-  
-  test('handles API errors during setup', async () => {
-    // Mock API error
-    (api.setupMFA as jest.Mock).mockRejectedValue(new Error('Failed to setup MFA'));
-    
-    await act(async () => {
-      render(<MFASetup onComplete={jest.fn()} />);
-    });
-    
-    // Should show error message
-    expect(screen.getByText(/Failed to setup MFA/i)).toBeInTheDocument();
-  });
-  
-  test('handles verification error', async () => {
-    await act(async () => {
-      render(<MFASetup onComplete={jest.fn()} />);
-    });
-    
-    // Mock verification error
-    (api.enableMFA as jest.Mock).mockRejectedValue(new Error('Invalid verification code'));
-    
-    // Enter verification code
-    const codeInput = screen.getByLabelText(/verification code/i);
-    fireEvent.change(codeInput, { target: { value: '123456' } });
-    
-    // Submit verification
-    const verifyButton = screen.getByRole('button', { name: /verify/i });
-    await act(async () => {
-      fireEvent.click(verifyButton);
-    });
-    
-    // Should show error message
-    expect(screen.getByText(/Invalid verification code/i)).toBeInTheDocument();
-  });
 
-  test('handles cancellation', async () => {
+  it('handles cancellation', async () => {
     const mockOnCancel = jest.fn();
     
-    await act(async () => {
-      render(<MFASetup onCancel={mockOnCancel} />);
-    });
+    render(<MFASetup onCancel={mockOnCancel} />);
     
     // Find and click the cancel button
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
-    await act(async () => {
-      fireEvent.click(cancelButton);
-    });
+    fireEvent.click(cancelButton);
     
     expect(mockOnCancel).toHaveBeenCalled();
   });
 
-  test('validates verification code length', async () => {
-    await act(async () => {
-      render(<MFASetup />);
-    });
+  it('validates verification code length', async () => {
+    render(<MFASetup />);
     
     // Start setup
     const startButton = screen.getByRole('button', { name: /begin setup/i });
-    await act(async () => {
-      fireEvent.click(startButton);
+    fireEvent.click(startButton);
+    
+    // Wait for setup to complete
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: /Scan the QR Code/i })).toBeInTheDocument();
     });
     
     // Enter an invalid (too short) verification code
-    const codeInput = screen.getByLabelText(/verification code/i);
+    const codeInput = screen.getByLabelText('Enter the 6-digit verification code from your app');
     fireEvent.change(codeInput, { target: { value: '12345' } });
     
     // Verify button should be disabled
@@ -175,61 +288,15 @@ describe('MFASetup Component', () => {
     expect(verifyButton).toBeDisabled();
     
     // Try to submit anyway
-    await act(async () => {
-      fireEvent.click(verifyButton);
-    });
+    fireEvent.click(verifyButton);
     
     // API should not be called
-    expect(api.enableMFA).not.toHaveBeenCalled();
+    expect(mockEnableMFA).not.toHaveBeenCalled();
     
     // Enter a valid code
     fireEvent.change(codeInput, { target: { value: '123456' } });
     
     // Verify button should be enabled
     expect(verifyButton).not.toBeDisabled();
-  });
-
-  test('handles back button navigation', async () => {
-    await act(async () => {
-      render(<MFASetup />);
-    });
-    
-    // Start setup
-    const startButton = screen.getByRole('button', { name: /begin setup/i });
-    await act(async () => {
-      fireEvent.click(startButton);
-    });
-    
-    // Should be on setup screen
-    expect(screen.getByText(/Scan this QR code/i)).toBeInTheDocument();
-    
-    // Click back button
-    const backButton = screen.getByRole('button', { name: /back/i });
-    await act(async () => {
-      fireEvent.click(backButton);
-    });
-    
-    // Should be back on intro screen
-    expect(screen.getByText(/Set Up Two-Factor Authentication/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /begin setup/i })).toBeInTheDocument();
-  });
-
-  test('filters non-numeric characters from verification code input', async () => {
-    await act(async () => {
-      render(<MFASetup />);
-    });
-    
-    // Start setup
-    const startButton = screen.getByRole('button', { name: /begin setup/i });
-    await act(async () => {
-      fireEvent.click(startButton);
-    });
-    
-    // Enter a code with non-numeric characters
-    const codeInput = screen.getByLabelText(/verification code/i);
-    fireEvent.change(codeInput, { target: { value: '1a2b3c4d5e6f' } });
-    
-    // Input should only contain numbers and be limited to 6 digits
-    expect(codeInput).toHaveValue('123456');
   });
 });

@@ -228,21 +228,21 @@ describe('Login Page', () => {
       expect(screen.getByTestId('mfa-verification')).toBeInTheDocument();
     }, { timeout: 3000 });
     
-    // Directly trigger the verification with error
-    const verifyButton = screen.getByRole('button', { name: /Verify with TOTP/i });
+    // Enter a verification code
+    const codeInput = screen.getByLabelText(/Authentication Code/i);
+    fireEvent.change(codeInput, { target: { value: '123456' } });
+    
+    // Click the verify button
+    const verifyButton = screen.getByRole('button', { name: /^Verify$/i });
     await act(async () => {
       fireEvent.click(verifyButton);
     });
     
-    // Debug output to see what's in the DOM
-    console.log('DOM after verification attempt:', container.innerHTML);
-    
-    // Should show error message with more flexible waiting
+    // Wait for the error message to appear
     await waitFor(() => {
-      const errorElements = screen.queryAllByTestId('mfa-error');
-      console.log('Found error elements:', errorElements.length);
-      expect(errorElements.length).toBeGreaterThan(0);
-      expect(errorElements[0]).toHaveTextContent('Invalid verification code');
+      const errorElement = screen.getByTestId('mfa-error');
+      expect(errorElement).toBeInTheDocument();
+      expect(errorElement).toHaveTextContent('Invalid verification code');
     }, { timeout: 5000 });
     
     // Should not redirect

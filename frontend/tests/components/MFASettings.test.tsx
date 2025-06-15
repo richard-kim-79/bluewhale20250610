@@ -103,9 +103,9 @@ describe('MFASettings Component', () => {
     });
     
     // Click disable button
-    const disableButton = screen.getByRole('button', { name: /Disable MFA/i });
+    const initialDisableButton = screen.getByRole('button', { name: /Disable Two-Factor Authentication/i });
     await act(async () => {
-      fireEvent.click(disableButton);
+      fireEvent.click(initialDisableButton);
     });
     
     // Should show verification dialog
@@ -115,16 +115,15 @@ describe('MFASettings Component', () => {
     const codeInput = screen.getByPlaceholderText('000000');
     fireEvent.change(codeInput, { target: { value: '123456' } });
     
-    // Wait for the button to be enabled and then find it
-    await waitFor(() => {
-      expect(screen.getByText(/Disable/i)).toBeInTheDocument();
-    });
-    const disableText = screen.getByText(/Disable/i);
-    const confirmButton = disableText.closest('button');
-    expect(confirmButton).not.toBeNull();
+    // Find the Disable button directly without waiting
+    const verifyButtons = screen.getAllByRole('button');
+    const verifyDisableButton = verifyButtons.find(button => button.textContent?.includes('Disable'));
+    expect(verifyDisableButton).toBeTruthy();
+    
+    // Click the disable button
     await act(async () => {
-      if (confirmButton) {
-        fireEvent.click(confirmButton);
+      if (verifyDisableButton) {
+        fireEvent.click(verifyDisableButton);
       }
     });
     
@@ -173,27 +172,26 @@ describe('MFASettings Component', () => {
     const codeInput = screen.getByPlaceholderText('000000');
     fireEvent.change(codeInput, { target: { value: '123456' } });
     
-    // Wait for the button to be enabled and then find it
-    await waitFor(() => {
-      expect(screen.getByText(/Disable/i)).toBeInTheDocument();
-    });
-    const disableText = screen.getByText(/Disable/i);
-    const confirmButton = disableText.closest('button');
-    expect(confirmButton).not.toBeNull();
+    // Find the Generate button
+    const verifyButtons = screen.getAllByRole('button');
+    const generateButton = verifyButtons.find(button => button.textContent?.includes('Generate'));
+    expect(generateButton).toBeTruthy();
+    
+    // Click the generate button
     await act(async () => {
-      if (confirmButton) {
-        fireEvent.click(confirmButton);
+      if (generateButton) {
+        fireEvent.click(generateButton);
       }
     });
     
+    // API should be called with the code
+    expect(api.getBackupCodes).toHaveBeenCalledWith('123456');
+    
     // Should show backup codes
     await waitFor(() => {
-      expect(screen.getByText(/Backup Codes/i)).toBeInTheDocument();
-    });
-    
-    // Should display all backup codes
-    mockBackupCodes.forEach(code => {
-      expect(screen.getByText(code)).toBeInTheDocument();
+      mockBackupCodes.forEach(code => {
+        expect(screen.getByText(code)).toBeInTheDocument();
+      });
     });
   });
   
